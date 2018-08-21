@@ -38,25 +38,25 @@ app.get('/api/list/bucket', (req, res) => {
 });
 
 app.post('/api/upload', upload.array('files', 12), (req, res) => {
-  let formData = req.files;
-  console.log(formData);
-  for(let i = 0; i < formData.length; i++) {
-    s3.putObject({
-        Bucket: BUCKET_NAME,
-        Key: req.folder + '/' + formData[i].originalname,
-        Body: formData[i].buffer,
-      }, function (resp) {
-        console.log(arguments);
-        console.log('Successfully uploaded package.');
-      });
-  }
-  res.send(201);
+  let formData = req.files[0];
+
+  s3.putObject({
+      Bucket: BUCKET_NAME,
+      Key: req.folder + '/' + formData.originalname,
+      Body: formData.buffer,
+    }, function (error, resp) {
+      if (error) res.send(500);
+      console.log(arguments);
+      console.log('Successfully uploaded package.');
+      res.send(201);
+    });
+
 });
 
-app.get('/api/list/:folder', (req, res) => {
+app.get('/api/list/folder/:name', (req, res) => {
   const params = {
     Bucket: BUCKET_NAME,
-    Prefix: req.params.folder,
+    Prefix: req.params.name,
   };
   const result = [];
   s3.listObjects(params, function(err, data) {
