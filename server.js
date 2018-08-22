@@ -20,7 +20,7 @@ app.use(bodyParser.json());
 
 // routes
 app.get('/', (req, res) => {
-  res.send(200, 'Server is running!!!' + Object.keys(process.env) + credential)
+  res.send(200, 'Server is running!!!')
 });
 
 var s3 = new AWS.S3();
@@ -41,15 +41,15 @@ app.post('/api/upload', upload.array('files', 12), (req, res) => {
   let formData = req.files[0];
 
   s3.putObject({
-      Bucket: BUCKET_NAME,
-      Key: req.folder + '/' + formData.originalname,
-      Body: formData.buffer,
-    }, function (error, resp) {
-      if (error) res.send(500);
-      console.log(arguments);
-      console.log('Successfully uploaded package.');
-      res.send(201);
-    });
+    Bucket: BUCKET_NAME,
+    Key: req.folder + '/' + formData.originalname,
+    Body: formData.buffer,
+  }, function (error, resp) {
+    if (error) res.send(500, error.stack);
+    console.log(arguments);
+    console.log('Successfully uploaded package.');
+    res.send(201);
+  });
 
 });
 
@@ -59,14 +59,32 @@ app.get('/api/list/folder/:name', (req, res) => {
     Prefix: req.params.name,
   };
   const result = [];
-  s3.listObjects(params, function(err, data) {
+  s3.listObjects(params, function (err, data) {
     if (err) {
-      console.log(err, err.stack);
+      res.send(500, err.stack);
     } else {
-      for(let i = 0 ; i < data.Contents.length; i ++) {
-        result.push(S3_LINK + data.Contents[i].Key);
+      for (let i = 0; i < data.Contents.length; i++) {
+        result.unshift(S3_LINK + data.Contents[i].Key);
       }
       res.send(200, result);
+    }
+  });
+});
+
+app.get('/api/list/folder/first/:name', (req, res) => {
+  const params = {
+    Bucket: BUCKET_NAME,
+    Prefix: req.params.name,
+  };
+  const result = [];
+  s3.listObjects(params, function (err, data) {
+    if (err) {
+      res.send(500, err.stack);
+    } else {
+      for (let i = 0; i < data.Contents.length; i++) {
+        result.unshift(S3_LINK + data.Contents[i].Key);
+      }
+      res.send(200, result.slice(0, 7));
     }
   });
 });
