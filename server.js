@@ -5,14 +5,31 @@ const AWS = require('aws-sdk');
 const credential = require('./config');
 let multer = require('multer');
 let upload = multer();
+const jwt = require('express-jwt');
+const jwks = require('jwks-rsa');
 
 const BUCKET_NAME = 'nm-photobooth-wi';
 const S3_LINK = 'https://s3-us-west-2.amazonaws.com/nm-photobooth-wi/';
 
-const port = 8080;
+var port = process.env.PORT || 8080;
+
+var jwtCheck = jwt({
+  secret: jwks.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: "https://dat-day-z.auth0.com/.well-known/jwks.json"
+  }),
+  audience: 'http://ec2-34-221-7-217.us-west-2.compute.amazonaws.com/api',
+  issuer: "https://dat-day-z.auth0.com/",
+  algorithms: ['RS256']
+});
+
+app.use(jwtCheck);
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   next();
 });
 
@@ -23,6 +40,9 @@ app.get('/', (req, res) => {
   res.send(200, 'Server is running!!!')
 });
 
+app.get('/authorized', function (req, res) {
+  res.send('Secured Resource');
+});
 var s3 = new AWS.S3();
 // For dev purposes only
 AWS.config.update({
@@ -39,10 +59,9 @@ app.get('/api/list/bucket', (req, res) => {
 
 app.post('/api/upload', upload.array('files', 12), (req, res) => {
   let formData = req.files[0];
-
   s3.putObject({
     Bucket: BUCKET_NAME,
-    Key: req.folder + '/' + formData.originalname,
+    Key: req.body.folder + '/' + formData.originalname,
     Body: formData.buffer,
   }, function (error, resp) {
     if (error) res.send(500, error.stack);
