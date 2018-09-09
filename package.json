@@ -5,7 +5,7 @@
   "main": "server.js",
   "repository":"http://github.com/daisygood/photo-booth-api",
   "scripts": {
-    "start": "node server.js"
+    "start": "node ./bin/www"
   },
   "keywords": [],
   "author": "Daisy Good",
